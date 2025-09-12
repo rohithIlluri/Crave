@@ -59,7 +59,7 @@ export function Navbar() {
                 <Button variant="ghost" size="sm" className="hidden sm:flex">
                   <Heart className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={() => router.push("/chats")}>
                   <MessageCircle className="h-5 w-5" />
                 </Button>
                 <DropdownMenu>

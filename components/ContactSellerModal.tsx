@@ -10,6 +10,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MessageCircle, Mail, Copy, Check } from "lucide-react"
 import { toast } from "sonner"
 import type { FoodListing } from "@/services/firestore"
+import { createChat } from "@/services/chats"
+import { useAuth } from "@/contexts/AuthContext"
+import { useRouter } from "next/navigation"
 
 interface ContactSellerModalProps {
   isOpen: boolean
@@ -30,6 +33,9 @@ export function ContactSellerModal({
   const [name, setName] = useState(buyerName)
   const [email, setEmail] = useState(buyerEmail)
   const [copied, setCopied] = useState(false)
+  const [startingChat, setStartingChat] = useState(false)
+  const { user } = useAuth()
+  const router = useRouter()
 
   const handleSendEmail = () => {
     const subject = `Interested in: ${listing.title}`
@@ -76,6 +82,41 @@ Description: ${listing.description}`
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
     window.open(whatsappUrl, "_blank")
     onClose()
+  }
+
+  const handleStartChat = async () => {
+    if (!user || !listing.producerId) {
+      toast.error("Please sign in to start a chat")
+      return
+    }
+
+    if (user.uid === listing.producerId) {
+      toast.error("You cannot message yourself")
+      return
+    }
+
+    setStartingChat(true)
+    try {
+      const chatId = await createChat(
+        user.uid,
+        user.displayName || user.email || "Anonymous",
+        user.photoURL || null,
+        listing.producerId,
+        listing.producerName,
+        listing.producerPhotoURL || null,
+        listing.id,
+        listing.title
+      )
+
+      toast.success("Chat started successfully!")
+      onClose()
+      router.push(`/chats`)
+    } catch (error) {
+      console.error("Error starting chat:", error)
+      toast.error("Failed to start chat")
+    } finally {
+      setStartingChat(false)
+    }
   }
 
   return (
@@ -133,7 +174,12 @@ Description: ${listing.description}`
 
           {/* Contact Options */}
           <div className="space-y-2">
-            <Button onClick={handleSendEmail} className="w-full bg-orange-600 hover:bg-orange-700">
+            <Button onClick={handleStartChat} disabled={startingChat} className="w-full bg-orange-600 hover:bg-orange-700">
+              <MessageCircle className="mr-2 h-4 w-4" />
+              {startingChat ? "Starting Chat..." : "Start Chat"}
+            </Button>
+            
+            <Button onClick={handleSendEmail} variant="outline" className="w-full">
               <Mail className="mr-2 h-4 w-4" />
               Send Email
             </Button>

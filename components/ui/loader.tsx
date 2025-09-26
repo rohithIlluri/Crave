@@ -1,12 +1,6 @@
-import * as React from 'react'
+import React from 'react'
 import { cn } from '@/lib/utils'
-
-interface LoaderProps {
-  size?: 'sm' | 'md' | 'lg' | 'xl'
-  variant?: 'spinner' | 'dots' | 'pulse' | 'skeleton'
-  className?: string
-  text?: string
-}
+import type { LoaderProps } from '@/types/loading'
 
 const sizeClasses = {
   sm: 'w-4 h-4',

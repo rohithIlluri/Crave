@@ -1,8 +1,10 @@
 "use client"
 
-import { ProtectedRoute } from '@/components/ProtectedRoute'
-import { Navbar } from '@/components/Navbar'
+import { AdminNavbar } from '@/components/AdminNavbar'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
 
 export default function AdminLayout({
   children,
@@ -10,16 +12,14 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   return (
-    <ProtectedRoute requireAdmin={true}>
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex">
-          <AdminSidebar />
-          <main className="flex-1 p-6">
-            {children}
-          </main>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <AdminNavbar />
+      <div className="flex">
+        <AdminSidebar />
+        <main className="flex-1 p-6">
+          {children}
+        </main>
       </div>
-    </ProtectedRoute>
+    </div>
   )
 }

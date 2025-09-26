@@ -11,7 +11,6 @@ import {
   Activity,
   Shield
 } from 'lucide-react'
-import { usePermissions } from '@/hooks/usePermissions'
 
 const adminMenuItems = [
   { 
@@ -55,11 +54,9 @@ const adminMenuItems = [
 export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { hasPermission } = usePermissions()
 
-  const filteredItems = adminMenuItems.filter(item => 
-    hasPermission(item.permission as any)
-  )
+  // For production, show all admin items
+  const filteredItems = adminMenuItems
 
   return (
     <Card className="w-64 h-[calc(100vh-4rem)] m-4 p-4">

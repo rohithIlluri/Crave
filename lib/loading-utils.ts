@@ -1,9 +1,8 @@
-import React from 'react'
 import { useLoading } from '@/contexts/LoadingContext'
+import type { LoadingWrapper } from '@/types/loading'
 
 // Utility functions for common loading patterns
-
-export const createLoadingWrapper = () => {
+export const createLoadingWrapper = (): LoadingWrapper => {
   const { withLoading, setLoading } = useLoading()
 
   return {
@@ -44,64 +43,27 @@ export const createLoadingWrapper = () => {
   }
 }
 
-// Higher-order function to wrap components with loading
-export const withLoading = <P extends object>(
-  Component: React.ComponentType<P>,
-  loadingText?: string
-) => {
-  return (props: P & { isLoading?: boolean }) => {
-    const { isLoading, ...restProps } = props
+// Production-optimized loading utilities
+export const createLoadingPatterns = () => {
+  const { withLoading } = useLoading()
+  
+  return {
+    apiCall: <T>(apiFn: () => Promise<T>, endpoint?: string) =>
+      withLoading(apiFn, `Loading ${endpoint || 'data'}...`),
     
-    if (isLoading) {
-      return (
-        <div className="flex items-center justify-center p-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-            <p className="text-sm text-muted-foreground">{loadingText || 'Loading...'}</p>
-          </div>
-        </div>
-      )
-    }
-
-    return <Component {...(restProps as P)} />
+    formSubmit: <T>(submitFn: () => Promise<T>, formName?: string) =>
+      withLoading(submitFn, `Submitting ${formName || 'form'}...`),
+    
+    fileUpload: <T>(uploadFn: () => Promise<T>, fileName?: string) =>
+      withLoading(uploadFn, `Uploading ${fileName || 'file'}...`),
+    
+    dataFetch: <T>(fetchFn: () => Promise<T>, dataType?: string) =>
+      withLoading(fetchFn, `Fetching ${dataType || 'data'}...`),
+    
+    save: <T>(saveFn: () => Promise<T>, itemType?: string) =>
+      withLoading(saveFn, `Saving ${itemType || 'changes'}...`),
+    
+    delete: <T>(deleteFn: () => Promise<T>, itemType?: string) =>
+      withLoading(deleteFn, `Deleting ${itemType || 'item'}...`)
   }
-}
-
-// Hook for conditional loading
-export const useConditionalLoading = (condition: boolean, text?: string) => {
-  const { setLoading } = useLoading()
-
-  React.useEffect(() => {
-    setLoading(condition, text)
-  }, [condition, text, setLoading])
-}
-
-// Utility for debounced loading
-export const useDebouncedLoading = (delay: number = 300) => {
-  const [showLoading, setShowLoading] = React.useState(false)
-  const { setLoading } = useLoading()
-
-  const startLoading = React.useCallback((text?: string) => {
-    setShowLoading(true)
-    setLoading(true, text)
-  }, [setLoading])
-
-  const stopLoading = React.useCallback(() => {
-    setShowLoading(false)
-    setLoading(false)
-  }, [setLoading])
-
-  React.useEffect(() => {
-    if (showLoading) {
-      const timer = setTimeout(() => {
-        if (showLoading) {
-          setLoading(true)
-        }
-      }, delay)
-
-      return () => clearTimeout(timer)
-    }
-  }, [showLoading, delay, setLoading])
-
-  return { startLoading, stopLoading }
 }

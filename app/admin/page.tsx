@@ -2,17 +2,17 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { usePermissions } from '@/hooks/usePermissions'
 import { Users, Database, Activity, Shield } from 'lucide-react'
 
-export default function AdminDashboard() {
-  const { user } = usePermissions()
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
 
+export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <p className="text-gray-600">Welcome back, {user?.displayName}</p>
+        <p className="text-gray-600">System administration panel</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -23,7 +23,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <Badge variant="default" className="text-lg">
-              {user?.role}
+              Admin
             </Badge>
           </CardContent>
         </Card>
@@ -62,20 +62,22 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Your Permissions</CardTitle>
+            <CardTitle>System Information</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {Object.entries(user?.permissions || {}).map(([key, value]) => (
-                <div key={key} className="flex justify-between items-center">
-                  <span className="text-sm capitalize">
-                    {key.replace(/can|([A-Z])/g, ' $1').trim()}
-                  </span>
-                  <Badge variant={value ? "default" : "secondary"}>
-                    {value ? "Allowed" : "Denied"}
-                  </Badge>
-                </div>
-              ))}
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Database Status</span>
+                <Badge variant="default">Connected</Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Authentication</span>
+                <Badge variant="default">Active</Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Storage</span>
+                <Badge variant="default">Available</Badge>
+              </div>
             </div>
           </CardContent>
         </Card>

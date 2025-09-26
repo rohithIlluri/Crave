@@ -6,6 +6,7 @@ import { Search, MapPin } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { useLocation } from "@/contexts/LocationContext"
 
 interface SearchBarProps {
   onSearch?: (searchTerm: string) => void
@@ -13,6 +14,7 @@ interface SearchBarProps {
 
 export function SearchBar({ onSearch }: SearchBarProps) {
   const [searchTerm, setSearchTerm] = useState("")
+  const { radiusKm, setRadiusKm, requestLocation, coords } = useLocation()
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,12 +33,28 @@ export function SearchBar({ onSearch }: SearchBarProps) {
         />
       </form>
 
-      <div className="flex items-center space-x-2 text-sm text-gray-600">
-        <MapPin className="h-4 w-4" />
-        <span>Within 5 miles of your location</span>
-        <Button variant="link" className="p-0 h-auto text-orange-600 text-sm">
-          Change
-        </Button>
+      <div className="flex items-center justify-between text-sm text-gray-600">
+        <div className="flex items-center space-x-2">
+          <MapPin className="h-4 w-4" />
+          <span>
+            {coords ? `Within ${Math.round(radiusKm * 0.621)} miles of your location` : 'Location not set'}
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="link" className="p-0 h-auto text-orange-600 text-sm" onClick={requestLocation}>
+            Use my location
+          </Button>
+          <input
+            type="range"
+            min={1}
+            max={30}
+            step={1}
+            value={radiusKm}
+            onChange={(e) => setRadiusKm(Number(e.target.value))}
+            className="w-32"
+            aria-label="Radius in km"
+          />
+        </div>
       </div>
     </div>
   )

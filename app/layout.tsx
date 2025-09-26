@@ -1,6 +1,8 @@
 import type React from "react"
 import "./globals.css"
 import { Inter } from "next/font/google"
+import { LoadingProvider } from "@/contexts/LoadingContext"
+import { GlobalLoader } from "@/components/GlobalLoader"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -21,7 +23,12 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <LoadingProvider>
+          {children}
+          <GlobalLoader />
+        </LoadingProvider>
+      </body>
     </html>
   )
 }

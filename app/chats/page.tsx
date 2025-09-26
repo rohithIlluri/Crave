@@ -1,13 +1,13 @@
 "use client"
 
-import { Chats } from "@/components/Chats"
+import { EnhancedChats } from "@/components/EnhancedChats"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { Toaster } from "sonner"
 
 export default function ChatsPage() {
   return (
     <AuthProvider>
-      <Chats />
+      <EnhancedChats />
       <Toaster />
     </AuthProvider>
   )

@@ -1,19 +1,25 @@
 "use client"
 
-import { Menu, User, Heart, MessageCircle, LogOut, Plus } from "lucide-react"
+import { Menu, User, Heart, MessageCircle, LogOut, Plus, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
+import { usePermissions } from "@/hooks/usePermissions"
 import { AuthModal } from "./AuthModal"
 import { useRouter } from "next/navigation"
+import { useSmartNotifications } from "@/hooks/useSmartNotifications"
+import { NotificationBanner } from "./NotificationBanner"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin")
   const { user, logout } = useAuth()
+  const { canAccessAdminPanel } = usePermissions()
+  const { notifications, unreadCount, dismissNotification } = useSmartNotifications()
   const router = useRouter()
 
   const handleAuthClick = (mode: "signin" | "signup") => {
@@ -59,8 +65,16 @@ export function Navbar() {
                 <Button variant="ghost" size="sm" className="hidden sm:flex">
                   <Heart className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => router.push("/chats")}>
+                <Button variant="ghost" size="sm" onClick={() => router.push("/chats")} className="relative">
                   <MessageCircle className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-gradient-to-r from-orange-500 to-pink-500"
+                    >
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </Badge>
+                  )}
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -80,6 +94,12 @@ export function Navbar() {
                       <Plus className="mr-2 h-4 w-4" />
                       My Listings
                     </DropdownMenuItem>
+                    {canAccessAdminPanel && (
+                      <DropdownMenuItem onClick={() => router.push("/admin")}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        Admin Panel
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={handleLogout}>
                       <LogOut className="mr-2 h-4 w-4" />
                       Log out
@@ -131,6 +151,12 @@ export function Navbar() {
       </nav>
 
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} defaultMode={authMode} />
+      
+      {/* Notification Banner */}
+      <NotificationBanner 
+        notifications={notifications}
+        onDismiss={dismissNotification}
+      />
     </>
   )
 }

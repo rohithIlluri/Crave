@@ -27,14 +27,7 @@ export function getFirebaseApp(): FirebaseApp {
     }
 
     if (process.env.NODE_ENV !== "production") {
-      console.debug(
-        "[Firebase] project:",
-        firebaseConfig.projectId,
-        "authDomain:",
-        firebaseConfig.authDomain,
-        "apiKey:",
-        (firebaseConfig.apiKey || "").slice(0, 6) + "…",
-      )
+      console.debug("[Firebase] Configuration loaded successfully")
     }
   }
 

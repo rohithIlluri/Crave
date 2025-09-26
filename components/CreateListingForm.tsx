@@ -15,9 +15,11 @@ import { useAuth } from "@/contexts/AuthContext"
 import { createListing } from "@/services/firestore"
 import { uploadMultipleImages } from "@/services/storage"
 import { toast } from "sonner"
+import { useLocation } from "@/contexts/LocationContext"
 
 export function CreateListingForm() {
   const { user } = useAuth()
+  const { coords, requestLocation } = useLocation()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [images, setImages] = useState<File[]>([])
@@ -90,6 +92,8 @@ export function CreateListingForm() {
         producerName: user.displayName || "",
         producerPhotoURL: user.photoURL || "",
         status: "available",
+        lat: coords?.lat ?? null,
+        lng: coords?.lng ?? null,
       })
 
       toast.success("Listing created successfully!")
@@ -236,6 +240,16 @@ export function CreateListingForm() {
               onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
               placeholder="e.g., Downtown, Near Central Park"
             />
+            <div className="mt-2 flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={requestLocation}>
+                Use my current location
+              </Button>
+              {coords && (
+                <span className="text-xs text-gray-500">
+                  Lat {coords.lat.toFixed(4)}, Lng {coords.lng.toFixed(4)}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Pickup Details */}

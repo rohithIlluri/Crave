@@ -11,10 +11,13 @@ import {
   orderBy,
   limit,
   startAfter,
+  startAt,
+  endAt,
   Timestamp,
   type DocumentSnapshot,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { geohashForLocation, geohashQueryBounds, distanceBetween } from "geofire-common"
 
 export interface FoodListing {
   id?: string
@@ -27,12 +30,19 @@ export interface FoodListing {
   producerId: string
   producerName: string
   producerPhotoURL: string
+  // Human-readable area label (optional)
   location: string | null
+  // NEW: coordinates + geohash (nullable for legacy data)
+  lat?: number | null
+  lng?: number | null
+  geohash?: string | null
   pickupDetails: string
   status: "available" | "sold" | "pending"
   createdAt: Timestamp
   updatedAt: Timestamp
 }
+
+export type LatLng = { lat: number; lng: number }
 
 export interface User {
   id: string
@@ -160,8 +170,15 @@ const getMockListings = (): FoodListing[] => [
 export const createListing = async (listing: Omit<FoodListing, "id" | "createdAt" | "updatedAt">) => {
   try {
     const now = Timestamp.now()
+    const lat = listing.lat ?? null
+    const lng = listing.lng ?? null
+    const geohash = lat != null && lng != null ? geohashForLocation([lat, lng]) : null
+    
     const docRef = await addDoc(collection(db, "listings"), {
       ...listing,
+      lat,
+      lng,
+      geohash,
       createdAt: now,
       updatedAt: now,
     })
@@ -246,7 +263,14 @@ export const getListings = async (categoryFilter?: string, lastDoc?: DocumentSna
   } catch (error: any) {
     console.error("Error fetching listings:", error)
 
-    // If any error occurs, return mock data for demo purposes
+    // Check for specific connection errors
+    if (error.message?.includes('ERR_BLOCKED_BY_CLIENT') || 
+        error.message?.includes('net::ERR_BLOCKED_BY_CLIENT') ||
+        error.code === 'unavailable') {
+      throw new Error('Connection blocked by client. Please check your ad blocker settings.')
+    }
+
+    // If any other error occurs, return mock data for demo purposes
     console.log("Using mock data due to Firestore restrictions")
     const mockListings = getMockListings()
 
@@ -355,4 +379,93 @@ export const searchListings = async (searchTerm: string) => {
         listing.description.toLowerCase().includes(searchTerm.toLowerCase()),
     )
   }
+}
+
+// Nearby query with distance sort and optional category
+export const getListingsNear = async (
+  center: LatLng,
+  radiusKm: number,
+  categoryFilter?: string,
+  limitCount = 50
+) => {
+  try {
+    const bounds = geohashQueryBounds([center.lat, center.lng], radiusKm * 1000)
+    const tasks = bounds.map(([start, end]) =>
+      getDocs(
+        query(
+          collection(db, 'listings'),
+          orderBy('geohash'),
+          startAt(start),
+          endAt(end),
+          // keep groups small; we'll dedupe later
+          limit(Math.ceil(limitCount / bounds.length) + 10)
+        )
+      )
+    )
+
+    const snapshots = await Promise.all(tasks)
+    const dedup = new Map<string, FoodListing>()
+
+    for (const snap of snapshots) {
+      for (const docSnap of snap.docs) {
+        const data = { id: docSnap.id, ...docSnap.data() } as FoodListing
+        // category filter early if provided
+        if (categoryFilter && categoryFilter !== 'All' && data.category !== categoryFilter.toLowerCase()) continue
+        if (data.status !== 'available') continue
+        if (data.lat == null || data.lng == null) continue
+        dedup.set(docSnap.id, data)
+      }
+    }
+
+    // final distance filter and sort
+    const withDistance = Array.from(dedup.values()).map((l) => {
+      const distKm = distanceBetween([center.lat, center.lng], [l.lat!, l.lng!])
+      return { l, distKm }
+    })
+
+    const withinRadius = withDistance.filter((x) => x.distKm <= radiusKm)
+
+    withinRadius.sort((a, b) => {
+      if (a.distKm !== b.distKm) return a.distKm - b.distKm
+      const aTs = (a.l.createdAt as Timestamp).toMillis?.() ?? 0
+      const bTs = (b.l.createdAt as Timestamp).toMillis?.() ?? 0
+      return bTs - aTs
+    })
+
+    const listings = withinRadius.slice(0, limitCount).map((x) => x.l)
+
+    return {
+      listings,
+      lastDoc: null, // pagination by geohash requires more machinery; skip for v1
+      hasMore: false,
+    }
+  } catch (error: any) {
+    console.error("Error fetching nearby listings:", error)
+    
+    // Fallback to mock data
+    const mockListings = getMockListings()
+    const filteredMockListings =
+      categoryFilter && categoryFilter !== "All"
+        ? mockListings.filter((listing) => listing.category === categoryFilter.toLowerCase())
+        : mockListings
+
+    return {
+      listings: filteredMockListings,
+      lastDoc: null,
+      hasMore: false,
+    }
+  }
+}
+
+// Unified entry point for feed
+export const getFeed = async (opts: {
+  coords?: LatLng
+  radiusKm?: number
+  categoryFilter?: string
+  lastDoc?: DocumentSnapshot
+  limitCount?: number
+}) => {
+  const { coords, radiusKm = 8, categoryFilter, lastDoc, limitCount = 20 } = opts || {}
+  if (coords) return getListingsNear(coords, radiusKm, categoryFilter, limitCount)
+  return getListings(categoryFilter, lastDoc, limitCount)
 }
